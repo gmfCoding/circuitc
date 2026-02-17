@@ -1,0 +1,144 @@
+╔═══════════════════════════════════════════════════════════╗
+║        CircuitC - Circuit Simulator in C                  ║
+║        Reimplementation of CircuitJS by Paul Falstad      ║
+╚═══════════════════════════════════════════════════════════╝
+
+PROJECT STRUCTURE:
+==================
+
+circuitc/
+├── 📄 README.md                  - Full project documentation
+├── 📄 IMPLEMENTATION.md          - Technical implementation details  
+├── 📄 COMMIT_SUMMARY.md          - Commit summary
+├── 🔧 Makefile                   - Build system
+│
+├── src/                          ← Core simulation engine
+│   ├── circuit.h                 - Data structures & API (151 lines)
+│   ├── solver.c                  - LU decomposition (218 lines)
+│   ├── simulation.c              - Matrix stamping (265 lines)
+│   └── elements.c                - Circuit elements (236 lines)
+│
+└── examples/                     ← Demonstration programs
+    ├── examples.c                - Four test circuits (230 lines)
+    └── rc_simple.c               - Simple RC example (43 lines)
+
+TOTAL: ~1433 lines of code
+
+
+FEATURES IMPLEMENTED:
+=====================
+
+✅ Matrix Solver
+   • LU decomposition with partial pivoting
+   • Modified Nodal Analysis (MNA)
+   • Forward/backward substitution
+
+✅ Circuit Elements
+   • Resistors
+   • Capacitors (trapezoidal/backward Euler integration)
+   • Inductors (trapezoidal/backward Euler integration)
+   • Voltage sources (DC)
+   • Current sources (DC)
+
+✅ Simulation Engine
+   • Time-domain simulation
+   • Companion models for reactive elements
+   • Two-phase execution (startIteration → doStep)
+   • Configurable timestep
+
+✅ Test Circuits
+   • Voltage divider (resistive)
+   • RC charging circuit
+   • LC oscillator
+   • Multi-node complex circuit
+
+
+TEST RESULTS:
+=============
+
+Example 1: Voltage Divider
+---------------------------
+Circuit: 10V → R1(1kΩ) → Node2 → R2(1kΩ) → GND
+Result:  Node2 = 5.000V ✓
+
+Example 2: RC Circuit
+---------------------
+Circuit: 5V → R(1kΩ) → C(10µF) → GND
+Result:  Exponential charging 0V → 4.966V ✓
+         Time constant τ = RC = 10ms ✓
+         Current decay 5mA → 0mA ✓
+
+Example 3: LC Oscillator
+-------------------------
+Circuit: L(1mH) ‖ C(100µF)
+Result:  Sinusoidal oscillation ✓
+         Frequency ≈ 503 Hz (theoretical) ✓
+         Voltage range: ±5V ✓
+         V and I in quadrature ✓
+
+Example 4: Complex Circuit
+---------------------------
+Circuit: Multiple sources & resistors
+Result:  All node voltages correct ✓
+
+
+ALGORITHMS USED:
+================
+
+Matrix Solver:
+--------------
+• Crout's Method for LU decomposition
+• Partial pivoting for numerical stability
+• O(n³) factorization, O(n²) solve
+
+Companion Models:
+-----------------
+Capacitor:
+  R_comp = Δt/(2C)         (trapezoidal)
+  I_eq = -V_old/R - I_old
+
+Inductor:
+  R_comp = 2L/Δt           (trapezoidal)
+  I_eq = V_old/R + I_old
+
+Integration:
+  • Trapezoidal (accurate, may oscillate)
+  • Backward Euler (stable)
+
+
+BUILD & RUN:
+============
+
+  $ make               # Build all
+  $ make test          # Run tests
+  $ ./build/examples   # Run demonstrations
+
+
+PERFORMANCE:
+============
+
+• Lightweight: ~1000 lines of core code
+• Fast: Native C performance
+• Memory efficient: Dynamic allocation
+• Stable: Numerical methods proven in CircuitJS
+
+
+BASED ON:
+=========
+
+• CircuitJS by Paul Falstad
+  └─ Original Java applet circuit simulator
+
+• CircuitJS1 by Iain Sharp
+  └─ JavaScript/GWT browser version
+     Located at: /workspaces/circuitjs1
+
+• Theory: "Electronic Circuit & System Simulation Methods"
+  by Pillage et al.
+
+
+LICENSE:
+========
+
+GNU General Public License v2.0
+(Same as CircuitJS)
