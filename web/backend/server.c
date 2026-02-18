@@ -16,6 +16,7 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 /* Send circuit topology and component data */
 void send_circuit_data(client_t *client) {
@@ -141,9 +142,14 @@ void handle_client_message(client_t *client, const uint8_t *data, uint64_t lengt
             memcpy(client->circuit_file, data + 1, filename_len);
             client->circuit_file[filename_len] = '\0';
             
-            /* Load circuit */
+            /* Stop simulation before loading new circuit */
+            client->running = false;
+            
+            /* Load circuit with mutex protection */
+            pthread_mutex_lock(&client->circuit_mutex);
             if (client->circuit) {
                 circuit_destroy(client->circuit);
+                client->circuit = NULL;
             }
             
             printf("Loading circuit: %s\n", client->circuit_file);
@@ -151,10 +157,12 @@ void handle_client_message(client_t *client, const uint8_t *data, uint64_t lengt
             
             if (client->circuit) {
                 circuit_analyze(client->circuit);
+                pthread_mutex_unlock(&client->circuit_mutex);
                 send_circuit_data(client);
                 printf("Circuit loaded: %d elements, %d nodes\n", 
                        client->circuit->elementCount, client->circuit->nodeCount);
             } else {
+                pthread_mutex_unlock(&client->circuit_mutex);
                 /* Send error */
                 uint8_t error[] = {MSG_ERROR, 0x01};  /* 0x01 = load error */
                 ws_send_binary(client->socket, error, sizeof(error));
@@ -180,19 +188,23 @@ void handle_client_message(client_t *client, const uint8_t *data, uint64_t lengt
                     break;
                     
                 case CMD_STEP:
+                    pthread_mutex_lock(&client->circuit_mutex);
                     if (client->circuit) {
                         circuit_step(client->circuit);
                         client->step_count++;
                         send_sim_update(client);
                     }
+                    pthread_mutex_unlock(&client->circuit_mutex);
                     break;
                     
                 case CMD_RESET:
+                    pthread_mutex_lock(&client->circuit_mutex);
                     if (client->circuit) {
                         circuit_reset(client->circuit);
                         client->step_count = 0;
                         send_circuit_data(client);
                     }
+                    pthread_mutex_unlock(&client->circuit_mutex);
                     printf("Simulation reset\n");
                     break;
                     
@@ -214,6 +226,7 @@ void handle_client_message(client_t *client, const uint8_t *data, uint64_t lengt
         }
     }
 }
+int usleep(int);
 
 /* Simulation thread */
 void* simulation_thread(void *arg) {
@@ -224,30 +237,38 @@ void* simulation_thread(void *arg) {
     
     while (client->socket >= 0) {
         if (client->running && client->circuit) {
-            /* Run simulation step */
-            if (circuit_step(client->circuit)) {
-                client->step_count++;
-                
-                /* Send update at display rate (adjustable by speed) */
-                struct timeval now;
-                gettimeofday(&now, NULL);
-                
-                double elapsed = (now.tv_sec - last_update.tv_sec) + 
-                               (now.tv_usec - last_update.tv_usec) / 1000000.0;
-                
-                /* Update rate: base 60 Hz / speed_multiplier */
-                double update_interval = 1.0 / (60.0 * client->speed_multiplier);
-                
-                if (elapsed >= update_interval) {
-                    send_sim_update(client);
-                    last_update = now;
+            /* Lock mutex to safely access circuit */
+            pthread_mutex_lock(&client->circuit_mutex);
+            
+            /* Check circuit is still valid after acquiring lock */
+            if (client->circuit && client->running) {
+                /* Run simulation step */
+                if (circuit_step(client->circuit)) {
+                    client->step_count++;
+                    
+                    /* Send update at display rate (adjustable by speed) */
+                    struct timeval now;
+                    gettimeofday(&now, NULL);
+                    
+                    double elapsed = (now.tv_sec - last_update.tv_sec) + 
+                                   (now.tv_usec - last_update.tv_usec) / 1000000.0;
+                    
+                    /* Update rate: base 60 Hz / speed_multiplier */
+                    double update_interval = 1.0 / (60.0 * client->speed_multiplier);
+                    
+                    if (elapsed >= update_interval) {
+                        send_sim_update(client);
+                        last_update = now;
+                    }
+                } else {
+                    /* Simulation error */
+                    client->running = false;
+                    uint8_t error[] = {MSG_ERROR, 0x02};  /* 0x02 = sim error */
+                    ws_send_binary(client->socket, error, sizeof(error));
                 }
-            } else {
-                /* Simulation error */
-                client->running = false;
-                uint8_t error[] = {MSG_ERROR, 0x02};  /* 0x02 = sim error */
-                ws_send_binary(client->socket, error, sizeof(error));
             }
+            
+            pthread_mutex_unlock(&client->circuit_mutex);
             
             /* Small delay to prevent CPU spinning */
             usleep(100);

@@ -1,5 +1,5 @@
 # Compiled Object files
-*.o
+*/*.o
 *.obj
 
 # Executables
@@ -42,3 +42,4 @@ obj/
 
 # Address Sanitizer
 *.asan
+web/backend/circuit_server

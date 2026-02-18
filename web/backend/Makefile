@@ -1,8 +1,8 @@
 # WebSocket Backend Server Makefile
 
-CC = gcc
-CFLAGS = -Wall -Wextra -g -I../../src
-LDFLAGS = -lm -lpthread -lssl -lcrypto
+CC = clang
+CFLAGS = -Wall -Wextra -g -ggdb -fsanitize=thread -I../../src
+LDFLAGS = -fsanitize=thread -lm -lpthread -lssl -lcrypto
 
 SRC_DIR = ../../src
 WEB_DIR = .

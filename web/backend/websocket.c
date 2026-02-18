@@ -447,14 +447,19 @@ void client_init(client_t *client, int socket) {
     client->current_vis_factor = 1.0;
     client->step_count = 0;
     client->circuit_file[0] = '\0';
+    pthread_mutex_init(&client->circuit_mutex, NULL);
 }
 
 /* Destroy client */
 void client_destroy(client_t *client) {
+    pthread_mutex_lock(&client->circuit_mutex);
     if (client->circuit) {
         circuit_destroy(client->circuit);
         client->circuit = NULL;
     }
+    pthread_mutex_unlock(&client->circuit_mutex);
+    pthread_mutex_destroy(&client->circuit_mutex);
+    
     if (client->socket >= 0) {
         close(client->socket);
         client->socket = -1;

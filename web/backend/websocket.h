@@ -8,6 +8,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <pthread.h>
 #include "../../src/circuit.h"
 
 /* WebSocket opcodes */
@@ -53,6 +54,7 @@ typedef struct {
     double current_vis_factor;
     int step_count;
     char circuit_file[256];
+    pthread_mutex_t circuit_mutex;  /* Protects circuit pointer access */
 } client_t;
 
 /* WebSocket functions */
