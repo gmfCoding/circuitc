@@ -9,15 +9,37 @@ CircuitC is a C implementation of the circuit simulation algorithms used in Circ
 ## Features
 
 - **Core simulation engine** with matrix-based circuit analysis
-- **Basic circuit elements:**
+- **Circuit file loader** - Load circuits from CircuitJS format `.txt` files
+- **Linear circuit elements:**
   - Resistors
   - Capacitors (with trapezoidal and backward Euler integration)
   - Inductors
   - Voltage sources
   - Current sources
+- **Nonlinear elements:**
+  - Diodes (Shockley equation with companion model)
+  - NPN/PNP Bipolar transistors (simplified Ebers-Moll model)
+  - Switches (open/closed states)
 - **Time-domain simulation** with configurable timestep
-- **Nonlinear circuit support** (framework in place for diodes, transistors, etc.)
+- **Nonlinear circuit solver** with iterative convergence
 - **Efficient LU factorization** solver
+
+## Quick Start
+
+### Loading and Simulating a Circuit File
+
+```bash
+# Build the project
+make
+
+# Load and simulate a circuit from CircuitJS format
+./build/load_circuit examples/test_simple.txt 100
+
+# Or use circuits from CircuitJS library
+./build/load_circuit /workspaces/circuitjs1_original/tests/cir-amp-741.txt 100
+```
+
+See [LOADER.md](LOADER.md) for detailed documentation on the circuit file format and supported elements.
 
 ## Project Structure
 
@@ -27,11 +49,15 @@ circuitc/
 │   ├── circuit.h        # Main header with data structures
 │   ├── solver.c         # LU decomposition matrix solver
 │   ├── simulation.c     # Core simulation and stamping functions
-│   └── elements.c       # Circuit element implementations
+│   ├── elements.c       # Circuit element implementations
+│   └── loader.c         # Circuit file loader (CircuitJS format)
 ├── examples/
-│   └── examples.c       # Example circuits and test programs
+│   ├── examples.c       # Example circuits and test programs
+│   ├── load_circuit.c   # Circuit file loader test program
+│   └── test_simple.txt  # Example circuit file
 ├── Makefile
-└── README.md
+├── README.md
+└── LOADER.md            # Circuit loader documentation
 ```
 
 ## Building
@@ -136,6 +162,49 @@ for (int i = 0; i < 1000; i++) {
 circuit_destroy(circuit);
 ```
 
+## Web Frontend
+
+CircuitC includes a complete web-based circuit viewer with real-time visualization:
+
+### Features
+- **WebSocket server** (C, raw implementation with binary protocol)
+- **HTML/CSS/JavaScript frontend** with Canvas rendering
+- **Real-time visualization** of voltages and currents
+- **Interactive controls** (start/stop/step/reset)
+- **Adjustable simulation speed** (0.1x to 5x)
+- **Visual feedback** (voltage colors, current-based wire thickness)
+
+### Quick Start
+
+```bash
+# Build and start the web server
+cd web/backend
+make
+./circuit_server 8080
+
+# In another terminal, serve the frontend
+cd web/frontend
+python3 -m http.server 8000
+
+# Open browser to http://localhost:8000
+```
+
+Or use the quick start script:
+
+```bash
+cd web
+./start.sh
+```
+
+### Usage
+1. Enter circuit file path (e.g., `../../examples/test_comprehensive.txt`)
+2. Click "Load Circuit"
+3. Use controls to start/stop/step simulation
+4. Adjust speed and current visualization sliders
+5. Watch real-time voltage/current updates on the canvas
+
+See [web/README.md](web/README.md) and [WEB_IMPLEMENTATION.md](WEB_IMPLEMENTATION.md) for detailed documentation.
+
 ## References
 
 - [CircuitJS1 by Iain Sharp](https://github.com/sharpie7/circuitjs1) - JavaScript/GWT implementation
@@ -156,10 +225,23 @@ This implementation follows the same license: **GNU General Public License v2.0*
 
 ## Future Enhancements
 
+Completed:
+- ✅ More circuit elements (diodes, transistors, switches)
+- ✅ Circuit file format parser (CircuitJS `.txt` format)
+- ✅ Graphical output (web-based Canvas visualization)
+- ✅ Interactive GUI (HTML/CSS/JavaScript frontend)
+
 Potential additions:
-- More circuit elements (diodes, transistors, op-amps)
 - AC analysis (frequency domain)
-- Graphical output (using SDL or similar)
-- Circuit file format parser
-- Interactive GUI
+- More element types (op-amps, MOSFETs, transformers)
+- Circuit editing in browser
+- Waveform plotting (oscilloscope view)
 - Performance optimizations (sparse matrices)
+- WebAssembly port for client-side simulation
+
+# License
+This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.

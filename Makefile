@@ -11,7 +11,7 @@ BUILD_DIR = build
 EXAMPLES_DIR = examples
 
 # Source files
-SOURCES = $(SRC_DIR)/solver.c $(SRC_DIR)/simulation.c $(SRC_DIR)/elements.c
+SOURCES = $(SRC_DIR)/solver.c $(SRC_DIR)/simulation.c $(SRC_DIR)/elements.c $(SRC_DIR)/loader.c
 OBJECTS = $(patsubst $(SRC_DIR)/%.c,$(BUILD_DIR)/%.o,$(SOURCES))
 
 # Example programs

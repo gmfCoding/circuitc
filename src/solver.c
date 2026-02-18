@@ -209,8 +209,8 @@ void circuit_add_element(Circuit *circuit, Element *elem) {
     
     circuit->elements[circuit->elementCount++] = elem;
     
-    /* Update node count */
-    for (int i = 0; i < 2; i++) {
+    /* Update node count - check all 3 nodes for transistors */
+    for (int i = 0; i < 3; i++) {
         if (elem->nodes[i] > circuit->nodeCount)
             circuit->nodeCount = elem->nodes[i];
     }
@@ -221,8 +221,11 @@ void circuit_add_element(Circuit *circuit, Element *elem) {
     }
     
     /* Mark nonlinear if needed */
-    if (elem->type == ELEM_DIODE)
+    if (elem->type == ELEM_DIODE || 
+        elem->type == ELEM_TRANSISTOR_NPN || 
+        elem->type == ELEM_TRANSISTOR_PNP) {
         circuit->circuitNonLinear = true;
+    }
 }
 
 /*

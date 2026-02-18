@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+</head>
+<body>
+    <h1>WebSocket Connection Test</h1>
+    <div id="status">Connecting...</div>
+    <div id="log"></div>
+    
+    <script>
+        const log = document.getElementById('log');
+        const status = document.getElementById('status');
+        
+        function addLog(msg) {
+            const div = document.createElement('div');
+            div.textContent = new Date().toISOString() + ': ' + msg;
+            log.appendChild(div);
+            console.log(msg);
+        }
+        
+        const wsUrls = [
+            'wss://fantastic-bassoon-q76qrp94prx3xgxg-9000.app.github.dev',
+            'ws://localhost:9000',
+            'ws://127.0.0.1:9000'
+        ];
+        
+        let currentIndex = 0;
+        
+        function tryConnect() {
+            if (currentIndex >= wsUrls.length) {
+                addLog('All connection attempts failed');
+                status.textContent = 'All attempts failed';
+                status.style.color = 'red';
+                return;
+            }
+            
+            const url = wsUrls[currentIndex];
+            addLog('Trying: ' + url);
+            
+            try {
+                const ws = new WebSocket(url);
+                ws.binaryType = 'arraybuffer';
+                
+                const timeout = setTimeout(() => {
+                    addLog('Timeout for ' + url);
+                    ws.close();
+                    currentIndex++;
+                    tryConnect();
+                }, 3000);
+                
+                ws.onopen = () => {
+                    clearTimeout(timeout);
+                    status.textContent = 'Connected to ' + url;
+                    status.style.color = 'green';
+                    addLog('✓ Connected successfully to: ' + url);
+                };
+                
+                ws.onerror = (error) => {
+                    clearTimeout(timeout);
+                    status.textContent = 'Error on ' + url;
+                    status.style.color = 'red';
+                    addLog('✗ Error on ' + url + ': ' + error);
+                };
+                
+                ws.onclose = (event) => {
+                    clearTimeout(timeout);
+                    if (event.code === 1006) {
+                        addLog('Connection failed (1006) for ' + url);
+                        currentIndex++;
+                        setTimeout(tryConnect, 500);
+                    } else {
+                        status.textContent = 'Disconnected';
+                        status.style.color = 'orange';
+                        addLog('Closed: code=' + event.code + ', reason=' + event.reason);
+                    }
+                };
+                
+                ws.onmessage = (event) => {
+                    addLog('Message received: ' + event.data);
+                };
+            } catch (e) {
+                status.textContent = 'Exception';
+                status.style.color = 'red';
+                addLog('Exception on ' + url + ': ' + e.message);
+                currentIndex++;
+                setTimeout(tryConnect, 500);
+            }
+        }
+        
+        tryConnect();
+    </script>
+</body>
+</html>

@@ -27,7 +27,10 @@ typedef enum {
     ELEM_CURRENT_SOURCE,
     ELEM_DIODE,
     ELEM_WIRE,
-    ELEM_GROUND
+    ELEM_GROUND,
+    ELEM_TRANSISTOR_NPN,
+    ELEM_TRANSISTOR_PNP,
+    ELEM_SWITCH
 } ElementType;
 
 /* Forward declarations */
@@ -37,10 +40,10 @@ typedef struct Element Element;
 /* Element structure - base for all circuit elements */
 struct Element {
     ElementType type;
-    int nodes[2];           /* Node connections (0 = ground) */
+    int nodes[3];           /* Node connections (0 = ground) - 3 for transistors */
     double value;           /* Resistance, capacitance, voltage, etc. */
     double current;         /* Current through element */
-    double volts[2];        /* Voltages at each node */
+    double volts[3];        /* Voltages at each node */
     int voltSource;         /* Index of voltage source (if applicable) */
     
     /* For time-varying elements (capacitors, inductors) */
@@ -60,7 +63,20 @@ struct Element {
             double leakage;
             double vdrop;
             double vCritical;
+            double saturationCurrent;  /* Is */
+            double thermalVoltage;      /* Vt */
         } diode;
+        struct {            /* For transistors */
+            double beta;                /* Current gain */
+            double vbe;                 /* Base-emitter voltage */
+            double vbc;                 /* Base-collector voltage */
+            double ic;                  /* Collector current */
+            double ib;                  /* Base current */
+            double ie;                  /* Emitter current */
+        } trans;
+        struct {            /* For switches */
+            bool isOpen;                /* Switch state */
+        } sw;
     } params;
     
     /* Methods (function pointers) */
@@ -126,6 +142,10 @@ Element* element_create_capacitor(int n1, int n2, double capacitance);
 Element* element_create_inductor(int n1, int n2, double inductance);
 Element* element_create_voltage_source(int n1, int n2, double voltage);
 Element* element_create_current_source(int n1, int n2, double current);
+Element* element_create_diode(int n1, int n2);
+Element* element_create_transistor_npn(int nc, int nb, int ne, double beta);
+Element* element_create_transistor_pnp(int nc, int nb, int ne, double beta);
+Element* element_create_switch(int n1, int n2, bool isOpen);
 Element* element_create_ground(int n);
 void element_destroy(Element *elem);
 
@@ -136,5 +156,9 @@ void inductor_calculate_current(Element *elem);
 /* Utility functions */
 double get_node_voltage(Circuit *circuit, int node);
 void set_time_step(Circuit *circuit, double dt);
+
+/* Circuit loading functions */
+Circuit* circuit_load_from_file(const char *filename);
+Circuit* circuit_load_from_string(const char *content);
 
 #endif /* CIRCUIT_H */

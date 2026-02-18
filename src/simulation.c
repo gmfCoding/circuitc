@@ -245,6 +245,8 @@ bool circuit_step(Circuit *circuit) {
                              circuit->nodeVoltages[elem->nodes[0] - 1];
             elem->volts[1] = (elem->nodes[1] == 0) ? 0.0 : 
                              circuit->nodeVoltages[elem->nodes[1] - 1];
+            elem->volts[2] = (elem->nodes[2] == 0) ? 0.0 : 
+                             circuit->nodeVoltages[elem->nodes[2] - 1];
         }
         
         /* Calculate currents for all elements */

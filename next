@@ -1,0 +1,15 @@
+Now implement loading the saved circuits from the .txt files, such as /workspaces/circuitjs1_original/tests/*.txt
+
+
+Make a front end HTML/JS viewer for the circuit. The front end communicates to a backend service.
+
+The backend service is a C program which is coordinating with the front end running the circuit on the backend.
+
+The front end has wires, resistors, and all other components.
+
+The front end can control the simulation speed, as well as the current visualisation factor.
+
+The front end gets updates from the backend.
+
+The front end is made purely using JS, HTML, CSS (you may use a css framework), as well as some lightweight JS libraries such as jQuery if necesssary.
+
