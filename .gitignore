@@ -1,0 +1,44 @@
+# Compiled Object files
+*.o
+*.obj
+
+# Executables
+*.exe
+*.out
+a.out
+build/examples
+build/load_circuit
+build/rc_simple
+
+# WebSocket Server
+web/backend/circuit_server
+
+# Libraries
+*.a
+*.so
+*.dylib
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+
+# Temporary files
+*.swp
+*.swo
+*~
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+*.code-workspace
+
+# Build directories
+build/
+bin/
+obj/
+
+# Address Sanitizer
+*.asan
