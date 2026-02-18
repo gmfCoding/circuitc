@@ -63,6 +63,10 @@ bool ws_send_frame(int socket, uint8_t opcode, const uint8_t *payload, uint64_t 
 bool ws_send_binary(int socket, const uint8_t *data, uint64_t length);
 void ws_frame_free(ws_frame_t *frame);
 
+/* Request type detection */
+bool is_websocket_request(const char *buffer, size_t length);
+bool handle_http_or_websocket(int client_socket);
+
 /* Client handling */
 void client_init(client_t *client, int socket);
 void client_destroy(client_t *client);

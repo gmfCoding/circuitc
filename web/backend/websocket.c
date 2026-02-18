@@ -5,6 +5,7 @@
 
 #define _POSIX_C_SOURCE 200809L
 #include "websocket.h"
+#include "http_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -81,7 +82,131 @@ int ws_server_start(int port) {
     return server_socket;
 }
 
-/* WebSocket handshake */
+/* Check if request is a WebSocket upgrade */
+bool is_websocket_request(const char *buffer, size_t length) {
+    /* Look for "Upgrade: websocket" header */
+    if (length < 20) return false;
+    
+    /* Convert to lowercase for case-insensitive search */
+    char *lower = malloc(length + 1);
+    if (!lower) return false;
+    
+    for (size_t i = 0; i < length; i++) {
+        lower[i] = tolower(buffer[i]);
+    }
+    lower[length] = '\0';
+    
+    bool is_ws = (strstr(lower, "upgrade: websocket") != NULL);
+    free(lower);
+    
+    return is_ws;
+}
+
+/* Parse HTTP request path */
+static char* extract_request_path(const char *buffer) {
+    /* Format: GET /path/to/file HTTP/1.1 */
+    const char *get_start = strstr(buffer, "GET ");
+    if (!get_start) return NULL;
+    
+    get_start += 4; /* Skip "GET " */
+    const char *path_end = strchr(get_start, ' ');
+    if (!path_end) return NULL;
+    
+    int path_len = path_end - get_start;
+    char *path = malloc(path_len + 1);
+    if (!path) return NULL;
+    
+    strncpy(path, get_start, path_len);
+    path[path_len] = '\0';
+    
+    return path;
+}
+
+/* Handle HTTP or WebSocket request */
+bool handle_http_or_websocket(int client_socket) {
+    char buffer[4096];
+    
+    /* Set receive timeout */
+    struct timeval tv;
+    tv.tv_sec = 5;
+    tv.tv_usec = 0;
+    setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+    
+    /* Peek at the request to determine type */
+    ssize_t bytes_read = recv(client_socket, buffer, sizeof(buffer) - 1, MSG_PEEK);
+    if (bytes_read <= 0) {
+        return false;
+    }
+    
+    buffer[bytes_read] = '\0';
+    
+    /* Check if it's a WebSocket upgrade request */
+    if (is_websocket_request(buffer, bytes_read)) {
+        printf("WebSocket upgrade request detected\n");
+        /* Now consume the data for real */
+        bytes_read = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
+        if (bytes_read <= 0) return false;
+        buffer[bytes_read] = '\0';
+        
+        /* Process WebSocket handshake */
+        char *key_start = strstr(buffer, "Sec-WebSocket-Key: ");
+        if (!key_start) return false;
+        
+        key_start += 19;
+        char *key_end = strstr(key_start, "\r\n");
+        if (!key_end) return false;
+        
+        int key_len = key_end - key_start;
+        char key[256];
+        strncpy(key, key_start, key_len);
+        key[key_len] = '\0';
+        
+        /* Compute accept key */
+        char accept_key_input[512];
+        snprintf(accept_key_input, sizeof(accept_key_input), "%s%s", key, WS_GUID);
+        
+        unsigned char sha1_result[SHA_DIGEST_LENGTH];
+        SHA1((unsigned char*)accept_key_input, strlen(accept_key_input), sha1_result);
+        
+        char *accept_key = base64_encode(sha1_result, SHA_DIGEST_LENGTH);
+        if (!accept_key) return false;
+        
+        /* Send handshake response */
+        char response[512];
+        int response_len = snprintf(response, sizeof(response),
+            "HTTP/1.1 101 Switching Protocols\r\n"
+            "Upgrade: websocket\r\n"
+            "Connection: Upgrade\r\n"
+            "Sec-WebSocket-Accept: %s\r\n\r\n",
+            accept_key);
+        
+        free(accept_key);
+        
+        ssize_t sent = send(client_socket, response, response_len, 0);
+        return (sent > 0);
+    } else {
+        /* HTTP request - extract path and serve static file */
+        printf("HTTP request detected\n");
+        /* Consume the data */
+        bytes_read = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
+        if (bytes_read <= 0) return false;
+        buffer[bytes_read] = '\0';
+        
+        char *path = extract_request_path(buffer);
+        if (!path) {
+            const char *error_msg = "400 Bad Request";
+            http_send_response(client_socket, 400, "text/plain", error_msg, strlen(error_msg));
+            return false;
+        }
+        
+        printf("HTTP GET %s\n", path);
+        bool success = http_serve_file(client_socket, path);
+        free(path);
+        return false; /* Close connection after serving HTTP */
+    }
+}
+
+/* WebSocket handshake with buffered data */
 bool ws_handshake(int client_socket) {
     char buffer[4096];
     

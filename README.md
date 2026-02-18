@@ -6,6 +6,46 @@ Electronic circuit simulator written in C, based on [CircuitJS](https://github.c
 
 CircuitC is a C implementation of the circuit simulation algorithms used in CircuitJS. It uses **Modified Nodal Analysis (MNA)** to simulate electronic circuits, solving the system of equations via LU decomposition with partial pivoting.
 
+## Quick Start
+
+### Web Interface (Recommended)
+
+The simplest way to use CircuitC is through the web interface:
+
+```bash
+# Build and start the server (serves HTTP + WebSocket on one port)
+cd web/backend
+make
+./circuit_server 8080
+
+# Or use the convenience script from the project root:
+./run_server.sh 8080
+```
+
+Then open your browser to `http://localhost:8080/` to access the interactive circuit simulator.
+
+The single `circuit_server` executable handles:
+- **Static file serving** (HTML, CSS, JavaScript)
+- **WebSocket simulation backend** (real-time circuit simulation)
+- **Circuit loading** from CircuitJS format files
+
+### Command Line Interface
+
+For batch processing or integration into other tools:
+
+```bash
+# Build the project
+make
+
+# Load and simulate a circuit from CircuitJS format
+./build/load_circuit examples/test_simple.txt 100
+
+# Or use circuits from CircuitJS library
+./build/load_circuit /workspaces/circuitjs1_original/tests/cir-amp-741.txt 100
+```
+
+See [LOADER.md](LOADER.md) for detailed documentation on the circuit file format and supported elements.
+
 ## Features
 
 - **Core simulation engine** with matrix-based circuit analysis

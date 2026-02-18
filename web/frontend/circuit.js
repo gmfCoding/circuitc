@@ -77,8 +77,15 @@ class CircuitViewer {
     }
     
     connect() {
+        // Determine WebSocket URL based on current page location
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host || 'localhost:8080';
+        
         // Try multiple WebSocket URLs in order
         const wsUrls = [
+            `${protocol}//${host}`,  // Same host as the page
+            'ws://localhost:8080',
+            'ws://127.0.0.1:8080',
             'wss://fantastic-bassoon-q76qrp94prx3xgxg-9000.app.github.dev',
             'ws://localhost:9000',
             'ws://127.0.0.1:9000'

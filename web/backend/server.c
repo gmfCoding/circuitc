@@ -287,14 +287,14 @@ int main(int argc, char *argv[]) {
         printf("Client connected: %s:%d\n", 
                inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
         
-        /* WebSocket handshake */
-        if (!ws_handshake(client_socket)) {
-            fprintf(stderr, "WebSocket handshake failed\n");
+        /* Handle HTTP or WebSocket request */
+        if (!handle_http_or_websocket(client_socket)) {
+            /* HTTP request was handled, or request failed - close connection */
             close(client_socket);
             continue;
         }
         
-        printf("WebSocket handshake successful\n");
+        printf("WebSocket connection established\n");
         
         /* Initialize client */
         client_t client;
